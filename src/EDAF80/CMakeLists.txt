@@ -14,7 +14,7 @@ target_sources (
 )
 target_link_libraries (parametric_shapes PRIVATE bonobo CG_Labs_options)
 
-
+link_directories(/opt/homebrew/lib)
 # Assignment 1
 add_executable (EDAF80_Assignment1)
 target_sources (

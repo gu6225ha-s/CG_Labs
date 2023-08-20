@@ -91,6 +91,14 @@ edaf80::Assignment3::run()
 	if (skybox_shader == 0u)
 		LogError("Failed to load skybox shader");
 
+	GLuint phong_shader = 0u;
+	program_manager.CreateAndRegisterProgram("Phong",
+	                                         { { ShaderType::vertex, "EDAF80/phong.vert" },
+	                                           { ShaderType::fragment, "EDAF80/phong.frag" } },
+	                                         phong_shader);
+	if (phong_shader == 0u)
+		LogError("Failed to load phong shader");
+
 	auto light_position = glm::vec3(-2.0f, 4.0f, 2.0f);
 	auto const set_uniforms = [&light_position](GLuint program){
 		glUniform3fv(glGetUniformLocation(program, "light_position"), 1, glm::value_ptr(light_position));
@@ -143,10 +151,28 @@ edaf80::Assignment3::run()
 	demo_material.specular = glm::vec3(1.0f, 1.0f, 1.0f);
 	demo_material.shininess = 10.0f;
 
+	GLuint diffuse = bonobo::loadTexture2D(
+		config::resources_path("textures/leather_red_02_coll1_2k.jpg")
+	);
+	if (diffuse == 0u) {
+		LogError("Failed to load diffuse texture");
+		return;
+	}
+
+	GLuint specular = bonobo::loadTexture2D(
+		config::resources_path("textures/leather_red_02_rough_2k.jpg")
+	);
+	if (specular == 0u) {
+		LogError("Failed to load specular map");
+		return;
+	}
+
 	Node demo_sphere;
 	demo_sphere.set_geometry(demo_shape);
 	demo_sphere.set_material_constants(demo_material);
-	demo_sphere.set_program(&fallback_shader, phong_set_uniforms);
+	demo_sphere.set_program(&phong_shader, phong_set_uniforms);
+	demo_sphere.add_texture("diffuse_texture", diffuse, GL_TEXTURE_2D);
+	demo_sphere.add_texture("specular_map", specular, GL_TEXTURE_2D);
 
 
 	glClearDepthf(1.0f);

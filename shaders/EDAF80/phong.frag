@@ -10,19 +10,34 @@ uniform int has_diffuse_texture;
 uniform sampler2D diffuse_texture;
 uniform int has_specular_map;
 uniform sampler2D specular_map;
+uniform int has_normal_map;
+uniform sampler2D normal_map;
+uniform int use_normal_mapping;
 
 in VS_OUT {
 	vec2 texcoord;
 	vec3 normal;
 	vec3 position;
+	mat3 tangent_to_world;
 } fs_in;
 
 out vec4 frag_color;
 
 void main()
 {
+	// Get normal vector
+	vec3 n;
+	if (has_normal_map != 0 && use_normal_mapping != 0)
+	{
+		n = fs_in.tangent_to_world * (texture(normal_map, fs_in.texcoord).rgb * 2.0 - 1.0);
+	}
+	else
+	{
+		n = fs_in.normal;
+	}
+
 	// Compute normalized vectors
-	vec3 n = normalize(fs_in.normal);
+	n = normalize(n);
 	vec3 L = normalize(light_position - fs_in.position);
 	vec3 V = normalize(camera_position - fs_in.position);
 

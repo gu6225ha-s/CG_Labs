@@ -65,9 +65,15 @@ edaf80::Assignment4::run()
 
 	float elapsed_time_s = 0.0f;
 
-	//
-	// Todo: Load your geometry
-	//
+	auto water_shape = parametric_shapes::createQuad(100.0f, 100.0f, 1000, 1000);
+	if (water_shape.vao == 0u) {
+		LogError("Failed to retrieve the mesh for the water");
+		return;
+	}
+
+	Node water;
+	water.set_geometry(water_shape);
+	water.set_program(&fallback_shader);
 
 	glClearDepthf(1.0f);
 	glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
@@ -147,9 +153,7 @@ edaf80::Assignment4::run()
 
 
 		if (!shader_reload_failed) {
-			//
-			// Todo: Render all your geometry here.
-			//
+			water.render(mCamera.GetWorldToClipMatrix());
 		}
 
 

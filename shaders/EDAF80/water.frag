@@ -46,5 +46,12 @@ void main()
 	vec3 R = reflect(-V, n);
 	vec4 reflection = texture(cubemap, R);
 
-	frag_color = color_water + reflection;
+	// Fresnel refraction
+	float R0 = 0.02037;
+	float fresnel = R0 + (1.0 - R0) * pow(1.0 - dot(V, n), 5.0);
+	float eta = 1.0 / 1.33;
+	vec3 F = refract(-V, n, eta);
+	vec4 refraction = texture(cubemap, F);
+
+	frag_color = color_water + reflection * fresnel + refraction * (1.0 - fresnel);
 }

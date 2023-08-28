@@ -58,12 +58,26 @@ edaf80::Assignment4::run()
 		return;
 	}
 
-	//
-	// Todo: Insert the creation of other shader programs.
-	//       (Check how it was done in assignment 3.)
-	//
+	GLuint water_shader = 0u;
+	program_manager.CreateAndRegisterProgram("Water",
+	                                         { { ShaderType::vertex, "EDAF80/water.vert" },
+	                                           { ShaderType::fragment, "EDAF80/water.frag" } },
+	                                         water_shader);
+	if (water_shader == 0u) {
+		LogError("Failed to load water shader");
+		return;
+	}
 
 	float elapsed_time_s = 0.0f;
+	glm::vec4 color_deep(0.0f, 0.0f, 0.1f, 1.0f);
+	glm::vec4 color_shallow(0.0f, 0.5f, 0.5f, 1.0f);
+
+	auto const set_water_uniforms = [&elapsed_time_s,&color_deep,&color_shallow,&camera_position](GLuint program){
+		glUniform1f(glGetUniformLocation(program, "time"), elapsed_time_s);
+		glUniform4fv(glGetUniformLocation(program, "color_deep"), 1, glm::value_ptr(color_deep));
+		glUniform4fv(glGetUniformLocation(program, "color_shallow"), 1, glm::value_ptr(color_shallow));
+		glUniform3fv(glGetUniformLocation(program, "camera_position"), 1, glm::value_ptr(camera_position));
+	};
 
 	auto water_shape = parametric_shapes::createQuad(100.0f, 100.0f, 1000, 1000);
 	if (water_shape.vao == 0u) {
@@ -73,7 +87,7 @@ edaf80::Assignment4::run()
 
 	Node water;
 	water.set_geometry(water_shape);
-	water.set_program(&fallback_shader);
+	water.set_program(&water_shader, set_water_uniforms);
 
 	glClearDepthf(1.0f);
 	glClearColor(0.1f, 0.1f, 0.1f, 1.0f);

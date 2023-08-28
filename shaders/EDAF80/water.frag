@@ -3,6 +3,7 @@
 uniform vec3 camera_position;
 uniform vec4 color_deep;
 uniform vec4 color_shallow;
+uniform samplerCube cubemap;
 
 in VS_OUT {
 	vec3 vertex;
@@ -16,5 +17,10 @@ void main()
 	vec3 V = normalize(camera_position - fs_in.vertex);
 	vec3 n = normalize(fs_in.normal);
 	float facing = 1.0 - max(dot(V, n), 0.0);
-	frag_color = mix(color_deep, color_shallow, facing);
+	vec4 color_water = mix(color_deep, color_shallow, facing);
+
+	vec3 R = reflect(-V, n);
+	vec4 reflection = texture(cubemap, R);
+
+	frag_color = color_water + reflection;
 }

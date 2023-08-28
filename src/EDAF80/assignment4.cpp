@@ -110,10 +110,19 @@ edaf80::Assignment4::run()
 		return;
 	}
 
+	GLuint normal_map = bonobo::loadTexture2D(
+		config::resources_path("textures/waves.png")
+	);
+	if (normal_map == 0u) {
+		LogError("Failed to load normal map");
+		return;
+	}
+
 	Node water;
 	water.set_geometry(water_shape);
 	water.set_program(&water_shader, set_water_uniforms);
 	water.add_texture("cubemap", cubemap, GL_TEXTURE_CUBE_MAP);
+	water.add_texture("normal_map", normal_map, GL_TEXTURE_2D);
 
 	glClearDepthf(1.0f);
 	glClearColor(0.1f, 0.1f, 0.1f, 1.0f);

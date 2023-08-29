@@ -1,9 +1,11 @@
 #include "assignment5.hpp"
+#include "parametric_shapes.hpp"
 
 #include "config.hpp"
 #include "core/Bonobo.h"
 #include "core/FPSCamera.h"
 #include "core/helpers.hpp"
+#include "core/node.hpp"
 #include "core/ShaderProgramManager.hpp"
 
 #include <imgui.h>
@@ -53,14 +55,39 @@ edaf80::Assignment5::run()
 		return;
 	}
 
-	//
-	// Todo: Insert the creation of other shader programs.
-	//       (Check how it was done in assignment 3.)
-	//
+	GLuint skybox_shader = 0u;
+	program_manager.CreateAndRegisterProgram("Skybox",
+	                                         { { ShaderType::vertex, "EDAF80/skybox.vert" },
+	                                           { ShaderType::fragment, "EDAF80/skybox.frag" } },
+	                                         skybox_shader);
+	if (skybox_shader == 0u) {
+		LogError("Failed to load skybox shader");
+		return;
+	}
 
-	//
-	// Todo: Load your geometry
-	//
+	// Load skybox
+	auto skybox_shape = parametric_shapes::createSphere(100.0f, 100u, 100u);
+	if (skybox_shape.vao == 0u) {
+		LogError("Failed to retrieve the mesh for the skybox");
+		return;
+	}
+
+	GLuint cubemap = bonobo::loadTextureCubeMap(
+		config::resources_path("cubemaps/Space/right.png"),
+		config::resources_path("cubemaps/Space/left.png"),
+		config::resources_path("cubemaps/Space/top.png"),
+		config::resources_path("cubemaps/Space/bottom.png"),
+		config::resources_path("cubemaps/Space/front.png"),
+		config::resources_path("cubemaps/Space/back.png"));
+	if (cubemap == 0u) {
+		LogError("Failed to load the textures for the skybox");
+		return;
+	}
+
+	Node skybox;
+	skybox.set_geometry(skybox_shape);
+	skybox.set_program(&skybox_shader);
+	skybox.add_texture("cubemap", cubemap, GL_TEXTURE_CUBE_MAP);
 
 	glClearDepthf(1.0f);
 	glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
@@ -127,9 +154,7 @@ edaf80::Assignment5::run()
 
 
 		if (!shader_reload_failed) {
-			//
-			// Todo: Render all your geometry here.
-			//
+			skybox.render(mCamera.GetWorldToClipMatrix());
 		}
 
 

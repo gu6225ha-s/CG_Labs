@@ -6,6 +6,8 @@ uniform vec3 specular_colour;
 uniform vec3 light_position;
 uniform vec3 camera_position;
 uniform float shininess_value;
+uniform int has_emissive_texture;
+uniform sampler2D emissive_texture;
 uniform int has_diffuse_texture;
 uniform sampler2D diffuse_texture;
 uniform int has_specular_texture;
@@ -43,6 +45,12 @@ void main()
 
 	// Ambient
 	frag_color = vec4(ambient_colour, 1.0);
+
+	// Emissive
+	if (has_emissive_texture != 0)
+	{
+		frag_color += texture(emissive_texture, fs_in.texcoord);
+	}
 
 	// Diffuse
 	vec4 diffuse_color;

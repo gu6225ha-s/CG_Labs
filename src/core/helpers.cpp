@@ -194,6 +194,7 @@ bonobo::loadObjects(std::string const& filename)
 		process_texture(aiTextureType_SPECULAR, "specular", "specular_texture");
 		process_texture(aiTextureType_NORMALS,  "normals",  "normals_texture");
 		process_texture(aiTextureType_OPACITY,  "opacity",  "opacity_texture");
+		process_texture(aiTextureType_EMISSIVE,  "emissive",  "emissive_texture");
 
 		auto const material_end_time = std::chrono::high_resolution_clock::now();
 		LogTrivia("│ %s Material \"%s\" loaded in %.3f ms",

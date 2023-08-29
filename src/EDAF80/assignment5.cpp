@@ -8,11 +8,99 @@
 #include "core/node.hpp"
 #include "core/ShaderProgramManager.hpp"
 
+#include <assimp/Importer.hpp>
+#include <assimp/matrix4x4.h>
+#include <assimp/scene.h>
+
 #include <imgui.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 #include <tinyfiledialogs.h>
 
 #include <clocale>
+#include <stack>
 #include <stdexcept>
+
+/// @brief Count number of nodes in the assimp scene graph
+/// @param[in] node Input node
+/// @return Number of nodes
+size_t num_nodes(struct aiNode *node)
+{
+	size_t n = 1;
+	for (auto i = 0u; i < node->mNumChildren; i++) {
+		n += num_nodes(node->mChildren[i]);
+	}
+	return n;
+}
+
+/// @brief Convert assimp transform to TRS transform
+/// @param[in] ai_trafo Input transform
+/// @param[out] trs_trafo Output transform
+void ai_transform_to_trs_transform(const aiMatrix4x4 &ai_trafo, TRSTransformf &trs_trafo)
+{
+	aiVector3t<ai_real> scaling;
+	aiQuaterniont<ai_real> rotation;
+	aiVector3t<ai_real> position;
+	ai_trafo.Decompose(scaling, rotation, position);
+
+	trs_trafo.SetScale(glm::vec3(scaling.x, scaling.y, scaling.z));
+	trs_trafo.SetTranslate(glm::vec3(position.x, position.y, position.z));
+	glm::quat quat(rotation.w, rotation.x, rotation.y, rotation.z);
+	trs_trafo.SetRotate(glm::angle(quat), glm::axis(quat));
+}
+
+/// @brief Load scene graph using assimp
+/// @param[in] path Path to file
+/// @param[in] meshes Meshes loaded with bonobo::loadObjects()
+/// @param[out] nodes Resulting list of nodes, with the root node at index 0
+/// @return true if successful and false otherwise
+bool load_scene(const std::string &path, std::vector<bonobo::mesh_data> &meshes,
+                std::vector<Node> &nodes)
+{
+	Assimp::Importer importer;
+	auto const assimp_scene = importer.ReadFile(path, 0);
+	if (assimp_scene == nullptr || assimp_scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || assimp_scene->mRootNode == nullptr) {
+		LogError("Failed to import %s", path.c_str());
+		return false;
+	}
+
+	std::stack<std::pair<struct aiNode *, Node *>> stack;
+	stack.emplace(assimp_scene->mRootNode, nullptr);
+
+	nodes.reserve(num_nodes(assimp_scene->mRootNode));
+
+	while(!stack.empty()) {
+		struct aiNode *ai_node;
+		Node *parent;
+		std::tie(ai_node, parent) = stack.top();
+		stack.pop();
+
+		Node node;
+
+		if (ai_node->mNumMeshes == 1) {
+			node.set_geometry(meshes.at(ai_node->mMeshes[0]));
+		}
+		else if (ai_node->mNumMeshes > 1) {
+			LogWarning("Unsupported number of meshes (%u) for node %s",
+			           ai_node->mNumMeshes, ai_node->mName.C_Str());
+		}
+
+		ai_transform_to_trs_transform(ai_node->mTransformation, node.get_transform());
+
+		nodes.push_back(node);
+
+		if (parent != nullptr) {
+			parent->add_child(&nodes.back());
+		}
+
+		for (auto i = 0u; i < ai_node->mNumChildren; ++i) {
+			stack.emplace(ai_node->mChildren[i], &nodes.back());
+		}
+	}
+
+	return true;
+}
 
 edaf80::Assignment5::Assignment5(WindowManager& windowManager) :
 	mCamera(0.5f * glm::half_pi<float>(),
@@ -65,6 +153,26 @@ edaf80::Assignment5::run()
 		return;
 	}
 
+	GLuint phong_shader = 0u;
+	program_manager.CreateAndRegisterProgram("Phong",
+	                                         { { ShaderType::vertex, "EDAF80/phong.vert" },
+	                                           { ShaderType::fragment, "EDAF80/phong.frag" } },
+	                                         phong_shader);
+	if (phong_shader == 0u) {
+		LogError("Failed to load phong shader");
+		return;
+	}
+
+	// Shader uniforms
+	auto light_position = glm::vec3(-2.0f, 4.0f, 2.0f); // FIXME
+	bool use_normal_mapping = true;
+	auto camera_position = mCamera.mWorld.GetTranslation();
+	auto const phong_set_uniforms = [&use_normal_mapping,&light_position,&camera_position](GLuint program){
+		glUniform1i(glGetUniformLocation(program, "use_normal_mapping"), use_normal_mapping ? 1 : 0);
+		glUniform3fv(glGetUniformLocation(program, "light_position"), 1, glm::value_ptr(light_position));
+		glUniform3fv(glGetUniformLocation(program, "camera_position"), 1, glm::value_ptr(camera_position));
+	};
+
 	// Load skybox
 	auto skybox_shape = parametric_shapes::createSphere(100.0f, 100u, 100u);
 	if (skybox_shape.vao == 0u) {
@@ -88,6 +196,23 @@ edaf80::Assignment5::run()
 	skybox.set_geometry(skybox_shape);
 	skybox.set_program(&skybox_shader);
 	skybox.add_texture("cubemap", cubemap, GL_TEXTURE_CUBE_MAP);
+
+	// Load spaceship
+	auto spaceship_path = config::resources_path("spaceship/scene.gltf");
+	auto spaceship_meshes = bonobo::loadObjects(spaceship_path);
+	if (spaceship_meshes.size() == 0) {
+		LogError("Failed to load meshes for the spaceship");
+		return;
+	}
+	std::vector<Node> spaceship_nodes;
+	if (!load_scene(spaceship_path, spaceship_meshes, spaceship_nodes)) {
+		LogError("Failed to load scene graph for the spaceship");
+		return;
+	}
+	for (auto &node: spaceship_nodes) {
+		node.set_program(&phong_shader, phong_set_uniforms);
+	}
+
 
 	glClearDepthf(1.0f);
 	glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
@@ -154,7 +279,29 @@ edaf80::Assignment5::run()
 
 
 		if (!shader_reload_failed) {
+			// TODO: Add skybox to scene graph?
 			skybox.render(mCamera.GetWorldToClipMatrix());
+
+			// Traverse the scene graph and render all nodes
+			std::stack<std::pair<const Node *, glm::mat4>> stack;
+			glm::mat4 transform = glm::rotate(
+				glm::scale(glm::mat4(1.0f), glm::vec3(0.05f)),
+				glm::half_pi<float>(),
+				glm::vec3(0.0f, 1.0f, 0.0f));
+			stack.emplace(&spaceship_nodes[0], transform);
+
+			while (!stack.empty()) {
+				const Node *node;
+				glm::mat4 parent_transform;
+				std::tie(node, parent_transform) = stack.top();
+				stack.pop();
+
+				node->render(mCamera.GetWorldToClipMatrix(), parent_transform);
+				parent_transform = parent_transform * node->get_transform().GetMatrix();
+				for (size_t i = 0; i < node->get_children_nb(); i++) {
+					stack.emplace(node->get_child(i), parent_transform);
+				}
+			}
 		}
 
 

@@ -159,18 +159,18 @@ edaf80::Assignment3::run()
 		return;
 	}
 
-	GLuint specular_map = bonobo::loadTexture2D(
+	GLuint specular_texture = bonobo::loadTexture2D(
 		config::resources_path("textures/leather_red_02_rough_2k.jpg")
 	);
-	if (specular_map == 0u) {
+	if (specular_texture == 0u) {
 		LogError("Failed to load specular map");
 		return;
 	}
 
-	GLuint normal_map = bonobo::loadTexture2D(
+	GLuint normals_texture = bonobo::loadTexture2D(
 		config::resources_path("textures/leather_red_02_nor_2k.jpg")
 	);
-	if (normal_map == 0u) {
+	if (normals_texture == 0u) {
 		LogError("Failed to load normal map");
 		return;
 	}
@@ -180,8 +180,8 @@ edaf80::Assignment3::run()
 	demo_sphere.set_material_constants(demo_material);
 	demo_sphere.set_program(&phong_shader, phong_set_uniforms);
 	demo_sphere.add_texture("diffuse_texture", diffuse_texture, GL_TEXTURE_2D);
-	demo_sphere.add_texture("specular_map", specular_map, GL_TEXTURE_2D);
-	demo_sphere.add_texture("normal_map", normal_map, GL_TEXTURE_2D);
+	demo_sphere.add_texture("specular_texture", specular_texture, GL_TEXTURE_2D);
+	demo_sphere.add_texture("normals_texture", normals_texture, GL_TEXTURE_2D);
 
 
 	glClearDepthf(1.0f);

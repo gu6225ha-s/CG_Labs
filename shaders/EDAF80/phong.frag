@@ -8,10 +8,10 @@ uniform vec3 camera_position;
 uniform float shininess_value;
 uniform int has_diffuse_texture;
 uniform sampler2D diffuse_texture;
-uniform int has_specular_map;
-uniform sampler2D specular_map;
-uniform int has_normal_map;
-uniform sampler2D normal_map;
+uniform int has_specular_texture;
+uniform sampler2D specular_texture;
+uniform int has_normals_texture;
+uniform sampler2D normals_texture;
 uniform int use_normal_mapping;
 
 in VS_OUT {
@@ -27,9 +27,9 @@ void main()
 {
 	// Get normal vector
 	vec3 n;
-	if (has_normal_map != 0 && use_normal_mapping != 0)
+	if (has_normals_texture != 0 && use_normal_mapping != 0)
 	{
-		n = fs_in.tangent_to_world * (texture(normal_map, fs_in.texcoord).rgb * 2.0 - 1.0);
+		n = fs_in.tangent_to_world * (texture(normals_texture, fs_in.texcoord).rgb * 2.0 - 1.0);
 	}
 	else
 	{
@@ -59,9 +59,9 @@ void main()
 
 	// Specular
 	vec4 specular_color;
-	if (has_specular_map != 0)
+	if (has_specular_texture != 0)
 	{
-		specular_color = texture(specular_map, fs_in.texcoord);
+		specular_color = texture(specular_texture, fs_in.texcoord);
 	}
 	else
 	{

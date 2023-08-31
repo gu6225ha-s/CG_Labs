@@ -1,5 +1,7 @@
 #include "assignment5.hpp"
+#include "interpolation.hpp"
 #include "parametric_shapes.hpp"
+#include "torus.hpp"
 
 #include "config.hpp"
 #include "core/Bonobo.h"
@@ -16,6 +18,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <glm/gtx/rotate_vector.hpp>
 #include <tinyfiledialogs.h>
 
 #include <clocale>
@@ -213,6 +216,41 @@ edaf80::Assignment5::run()
 		node.set_program(&phong_shader, phong_set_uniforms);
 	}
 
+	// Create toruses
+	// FIXME: Set proper control point locations
+	std::array<glm::vec3, 9> control_point_locations = {
+		glm::vec3( 0.0f,  0.0f,  0.0f),
+		glm::vec3( 1.0f,  1.8f,  1.0f),
+		glm::vec3( 2.0f,  1.2f,  2.0f),
+		glm::vec3( 3.0f,  3.0f,  3.0f),
+		glm::vec3( 3.0f,  0.0f,  3.0f),
+		glm::vec3(-2.0f, -1.0f,  3.0f),
+		glm::vec3(-3.0f, -3.0f, -3.0f),
+		glm::vec3(-2.0f, -1.2f, -2.0f),
+		glm::vec3(-1.0f, -1.8f, -1.0f),
+	};
+	std::vector<Torus> toruses;
+	float catmull_rom_tension = 0.5f;
+	size_t control_point_index = 1u;
+	float x = 0.0f;
+	while (control_point_index < control_point_locations.size() - 2) {
+		const glm::vec3 &p0 = control_point_locations.at(control_point_index - 1);
+		const glm::vec3 &p1 = control_point_locations.at(control_point_index);
+		const glm::vec3 &p2 = control_point_locations.at(control_point_index + 1);
+		const glm::vec3 &p3 = control_point_locations.at(control_point_index + 2);
+		const glm::vec3 pos = interpolation::evalCatmullRom(p0, p1, p2, p3, catmull_rom_tension, x);
+		const glm::vec3 dir = interpolation::evalCatmullRom(p0, p1, p2, p3, catmull_rom_tension, x + 0.01f) - pos;
+
+		const glm::mat4 rot = glm::orientation(dir, glm::vec3(0.0f, 0.0f, 1.0f));
+		toruses.emplace_back(glm::translate(rot * glm::scale(glm::vec3(0.25f)), pos), &fallback_shader);
+
+		x += 0.4f;
+		if (x > 1.0f) {
+			x -= 1.0f;
+			control_point_index++;
+		}
+	}
+
 
 	glClearDepthf(1.0f);
 	glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
@@ -225,8 +263,8 @@ edaf80::Assignment5::run()
 	bool show_gui = true;
 	bool shader_reload_failed = false;
 	bool show_basis = false;
-	float basis_thickness_scale = 1.0f;
-	float basis_length_scale = 1.0f;
+	float basis_thickness_scale = 0.25f;
+	float basis_length_scale = 0.5f;
 
 	while (!glfwWindowShouldClose(window)) {
 		auto const nowTime = std::chrono::high_resolution_clock::now();
@@ -279,15 +317,19 @@ edaf80::Assignment5::run()
 
 
 		if (!shader_reload_failed) {
-			// TODO: Add skybox to scene graph?
 			skybox.render(mCamera.GetWorldToClipMatrix());
+
+			for (const auto &torus: toruses) {
+				torus.render(mCamera.GetWorldToClipMatrix(), show_basis, basis_thickness_scale, basis_length_scale);
+			}
 
 			// Traverse the scene graph and render all nodes
 			std::stack<std::pair<const Node *, glm::mat4>> stack;
 			glm::mat4 transform = glm::rotate(
-				glm::scale(glm::mat4(1.0f), glm::vec3(0.05f)),
+				glm::scale(glm::mat4(1.0f), glm::vec3(0.01f)),
 				glm::half_pi<float>(),
 				glm::vec3(0.0f, 1.0f, 0.0f));
+			transform = glm::translate(transform, glm::vec3(x, 0.1f, 0.0f));
 			stack.emplace(&spaceship_nodes[0], transform);
 
 			while (!stack.empty()) {
@@ -314,8 +356,8 @@ edaf80::Assignment5::run()
 		bool const opened = ImGui::Begin("Scene Controls", nullptr, ImGuiWindowFlags_None);
 		if (opened) {
 			ImGui::Checkbox("Show basis", &show_basis);
-			ImGui::SliderFloat("Basis thickness scale", &basis_thickness_scale, 0.0f, 100.0f);
-			ImGui::SliderFloat("Basis length scale", &basis_length_scale, 0.0f, 100.0f);
+			ImGui::SliderFloat("Basis thickness scale", &basis_thickness_scale, 0.0f, 1.0f);
+			ImGui::SliderFloat("Basis length scale", &basis_length_scale, 0.0f, 1.0f);
 		}
 		ImGui::End();
 

@@ -239,12 +239,14 @@ edaf80::Assignment5::run()
 		const glm::vec3 &p2 = control_point_locations.at(control_point_index + 1);
 		const glm::vec3 &p3 = control_point_locations.at(control_point_index + 2);
 		const glm::vec3 pos = interpolation::evalCatmullRom(p0, p1, p2, p3, catmull_rom_tension, x);
-		const glm::vec3 dir = interpolation::evalCatmullRom(p0, p1, p2, p3, catmull_rom_tension, x + 0.01f) - pos;
+		const glm::vec3 dir = glm::normalize(interpolation::evalCatmullRom(p0, p1, p2, p3, catmull_rom_tension, x + 0.01f) - pos);
+		const glm::mat4 mat = glm::translate(pos) *
+		                      glm::orientation(dir, glm::vec3(0.0f, 1.0f, 0.0f)) *
+		                      glm::scale(glm::vec3(0.25f));
 
-		const glm::mat4 rot = glm::orientation(dir, glm::vec3(0.0f, 0.0f, 1.0f));
-		toruses.emplace_back(glm::translate(rot * glm::scale(glm::vec3(0.25f)), pos), &fallback_shader);
+		toruses.emplace_back(mat, &fallback_shader);
 
-		x += 0.4f;
+		x += 0.3f;
 		if (x > 1.0f) {
 			x -= 1.0f;
 			control_point_index++;

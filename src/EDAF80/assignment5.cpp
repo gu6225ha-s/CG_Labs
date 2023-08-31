@@ -244,7 +244,15 @@ edaf80::Assignment5::run()
 		                      glm::orientation(dir, glm::vec3(0.0f, 1.0f, 0.0f)) *
 		                      glm::scale(glm::vec3(0.25f));
 
-		toruses.emplace_back(mat, &fallback_shader);
+		toruses.emplace_back(mat, 1.0f, 0.1f);
+		auto &node = toruses.back().node();
+		node.set_program(&phong_shader, phong_set_uniforms);
+		bonobo::material_data material_constants;
+		material_constants.ambient = glm::vec3(0.8f, 0.8f, 0.0f);
+		material_constants.diffuse = glm::vec3(1.0f, 1.0f, 0.0f);
+		material_constants.specular = glm::vec3(1.0f, 1.0f, 1.0f);
+		material_constants.shininess = 10.0f;
+		node.set_material_constants(material_constants);
 
 		x += 0.3f;
 		if (x > 1.0f) {

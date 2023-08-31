@@ -12,8 +12,9 @@ class Torus
 public:
 	/// @brief Create torus
 	/// @param transform Model space to world space matrix
-	/// @param program Shader program to use
-	Torus(const glm::mat4 &transform, const GLuint *program);
+	/// @param major_radius Major radius
+	/// @param minor_radius Minor radius
+	Torus(const glm::mat4 &transform, const float major_radius, const float minor_radius);
 
 	/// @brief Render the torus
 	/// @param view_projection World space to clip space matrix
@@ -26,6 +27,10 @@ public:
 	/// @param point Query point
 	/// @return true if point intersects with the torus and false otherwise
 	bool intersects(const glm::vec3 &point) const;
+
+	/// @brief Get the node of the torus
+	/// @return A reference to the node
+	Node &node() { return _node; }
 
 	/// @brief Check if torus is active
 	/// @return true if torus is active and false otherwise

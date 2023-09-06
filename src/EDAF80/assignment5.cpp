@@ -1,6 +1,7 @@
 #include "assignment5.hpp"
 #include "interpolation.hpp"
 #include "parametric_shapes.hpp"
+#include "spaceship.hpp"
 #include "torus.hpp"
 
 #include "config.hpp"
@@ -10,10 +11,6 @@
 #include "core/node.hpp"
 #include "core/ShaderProgramManager.hpp"
 
-#include <assimp/Importer.hpp>
-#include <assimp/matrix4x4.h>
-#include <assimp/scene.h>
-
 #include <imgui.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -22,88 +19,7 @@
 #include <tinyfiledialogs.h>
 
 #include <clocale>
-#include <stack>
 #include <stdexcept>
-
-/// @brief Count number of nodes in the assimp scene graph
-/// @param[in] node Input node
-/// @return Number of nodes
-size_t num_nodes(struct aiNode *node)
-{
-	size_t n = 1;
-	for (auto i = 0u; i < node->mNumChildren; i++) {
-		n += num_nodes(node->mChildren[i]);
-	}
-	return n;
-}
-
-/// @brief Convert assimp transform to TRS transform
-/// @param[in] ai_trafo Input transform
-/// @param[out] trs_trafo Output transform
-void ai_transform_to_trs_transform(const aiMatrix4x4 &ai_trafo, TRSTransformf &trs_trafo)
-{
-	aiVector3t<ai_real> scaling;
-	aiQuaterniont<ai_real> rotation;
-	aiVector3t<ai_real> position;
-	ai_trafo.Decompose(scaling, rotation, position);
-
-	trs_trafo.SetScale(glm::vec3(scaling.x, scaling.y, scaling.z));
-	trs_trafo.SetTranslate(glm::vec3(position.x, position.y, position.z));
-	glm::quat quat(rotation.w, rotation.x, rotation.y, rotation.z);
-	trs_trafo.SetRotate(glm::angle(quat), glm::axis(quat));
-}
-
-/// @brief Load scene graph using assimp
-/// @param[in] path Path to file
-/// @param[in] meshes Meshes loaded with bonobo::loadObjects()
-/// @param[out] nodes Resulting list of nodes, with the root node at index 0
-/// @return true if successful and false otherwise
-bool load_scene(const std::string &path, std::vector<bonobo::mesh_data> &meshes,
-                std::vector<Node> &nodes)
-{
-	Assimp::Importer importer;
-	auto const assimp_scene = importer.ReadFile(path, 0);
-	if (assimp_scene == nullptr || assimp_scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || assimp_scene->mRootNode == nullptr) {
-		LogError("Failed to import %s", path.c_str());
-		return false;
-	}
-
-	std::stack<std::pair<struct aiNode *, Node *>> stack;
-	stack.emplace(assimp_scene->mRootNode, nullptr);
-
-	nodes.reserve(num_nodes(assimp_scene->mRootNode));
-
-	while(!stack.empty()) {
-		struct aiNode *ai_node;
-		Node *parent;
-		std::tie(ai_node, parent) = stack.top();
-		stack.pop();
-
-		Node node;
-
-		if (ai_node->mNumMeshes == 1) {
-			node.set_geometry(meshes.at(ai_node->mMeshes[0]));
-		}
-		else if (ai_node->mNumMeshes > 1) {
-			LogWarning("Unsupported number of meshes (%u) for node %s",
-			           ai_node->mNumMeshes, ai_node->mName.C_Str());
-		}
-
-		ai_transform_to_trs_transform(ai_node->mTransformation, node.get_transform());
-
-		nodes.push_back(node);
-
-		if (parent != nullptr) {
-			parent->add_child(&nodes.back());
-		}
-
-		for (auto i = 0u; i < ai_node->mNumChildren; ++i) {
-			stack.emplace(ai_node->mChildren[i], &nodes.back());
-		}
-	}
-
-	return true;
-}
 
 edaf80::Assignment5::Assignment5(WindowManager& windowManager) :
 	mCamera(0.5f * glm::half_pi<float>(),
@@ -201,18 +117,16 @@ edaf80::Assignment5::run()
 	skybox.add_texture("cubemap", cubemap, GL_TEXTURE_CUBE_MAP);
 
 	// Load spaceship
-	auto spaceship_path = config::resources_path("spaceship/scene.gltf");
-	auto spaceship_meshes = bonobo::loadObjects(spaceship_path);
-	if (spaceship_meshes.size() == 0) {
-		LogError("Failed to load meshes for the spaceship");
+	Spaceship spaceship;
+	if (!spaceship.load(config::resources_path("spaceship/scene.gltf"))) {
+		LogError("Failed to load the spaceship model");
 		return;
 	}
-	std::vector<Node> spaceship_nodes;
-	if (!load_scene(spaceship_path, spaceship_meshes, spaceship_nodes)) {
-		LogError("Failed to load scene graph for the spaceship");
-		return;
-	}
-	for (auto &node: spaceship_nodes) {
+	spaceship.transform() = glm::rotate(
+		glm::scale(glm::mat4(1.0f), glm::vec3(0.01f)),
+		glm::half_pi<float>(),
+		glm::vec3(0.0f, 1.0f, 0.0f));
+	for (auto &node: spaceship.nodes()) {
 		node.set_program(&phong_shader, phong_set_uniforms);
 	}
 
@@ -333,27 +247,7 @@ edaf80::Assignment5::run()
 				torus.render(mCamera.GetWorldToClipMatrix(), show_basis, basis_thickness_scale, basis_length_scale);
 			}
 
-			// Traverse the scene graph and render all nodes
-			std::stack<std::pair<const Node *, glm::mat4>> stack;
-			glm::mat4 transform = glm::rotate(
-				glm::scale(glm::mat4(1.0f), glm::vec3(0.01f)),
-				glm::half_pi<float>(),
-				glm::vec3(0.0f, 1.0f, 0.0f));
-			transform = glm::translate(transform, glm::vec3(x, 0.1f, 0.0f));
-			stack.emplace(&spaceship_nodes[0], transform);
-
-			while (!stack.empty()) {
-				const Node *node;
-				glm::mat4 parent_transform;
-				std::tie(node, parent_transform) = stack.top();
-				stack.pop();
-
-				node->render(mCamera.GetWorldToClipMatrix(), parent_transform);
-				parent_transform = parent_transform * node->get_transform().GetMatrix();
-				for (size_t i = 0; i < node->get_children_nb(); i++) {
-					stack.emplace(node->get_child(i), parent_transform);
-				}
-			}
+			spaceship.render(mCamera.GetWorldToClipMatrix(), show_basis, basis_thickness_scale, basis_length_scale);
 		}
 
 

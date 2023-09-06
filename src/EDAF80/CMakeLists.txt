@@ -83,6 +83,8 @@ target_sources (
 	PRIVATE
 		[[assignment5.hpp]]
 		[[assignment5.cpp]]
+		[[spaceship.hpp]]
+		[[spaceship.cpp]]
 		[[torus.hpp]]
 		[[torus.cpp]]
 		[[util.hpp]]

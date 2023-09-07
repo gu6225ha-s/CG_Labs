@@ -17,6 +17,8 @@ namespace interpolation
 	//! @return interpolated position
 	glm::vec3 evalLERP(glm::vec3 const&p0, glm::vec3 const&p1,
 	                   float const x);
+	glm::vec4 evalLERP(glm::vec4 const&p0, glm::vec4 const&p1,
+	                   float const x);
 
 	//! \brief Compute a new position using a Catmull-Rom spline
 	//!        interpolation.

@@ -193,6 +193,13 @@ edaf80::Assignment5::run()
 	float basis_thickness_scale = 0.25f;
 	float basis_length_scale = 0.5f;
 
+	// Camera and look at position in spaceship local frame
+	glm::vec4 camera_translation_local(-1.5f, 0.5f, 0.0f, 1.0f), camera_look_at_local(0.0f, 0.2f, 0.0f, 1.0f);
+	// Camera and look at position + up vector in world frame
+	glm::vec4 camera_translation(0.0f), camera_look_at(0.0f), camera_up(0.0f);
+	// Camera trajectory forget factor
+	float camera_forget_factor = 0.05f;
+
 	while (!glfwWindowShouldClose(window)) {
 		auto const nowTime = std::chrono::high_resolution_clock::now();
 		auto const deltaTimeUs = std::chrono::duration_cast<std::chrono::microseconds>(nowTime - lastTime);
@@ -239,9 +246,12 @@ edaf80::Assignment5::run()
 
 		spaceship.update(inputHandler, std::chrono::duration<float>(deltaTimeUs).count());
 
-		mCamera.mWorld.SetTranslate(spaceship.transform() * glm::vec4(-1.5f, 0.5f, 0.0f, 1.0f));
-		mCamera.mWorld.LookAt(spaceship.transform() * glm::vec4(0.0f, 0.2f, 0.0f, 1.0f),
-		                      spaceship.transform() * glm::vec4(0.0f, 1.0f, 0.0f, 0.0f));
+		camera_translation = interpolation::evalLERP(camera_translation, spaceship.transform() * camera_translation_local, camera_forget_factor);
+		camera_look_at = interpolation::evalLERP(camera_look_at, spaceship.transform() * camera_look_at_local, camera_forget_factor);
+		camera_up = interpolation::evalLERP(camera_up, spaceship.transform() * glm::vec4(0.0f, 1.0f, 0.0f, 0.0f), camera_forget_factor);
+
+		mCamera.mWorld.SetTranslate(camera_translation);
+		mCamera.mWorld.LookAt(camera_look_at, camera_up);
 
 
 		mWindowManager.NewImGuiFrame();
@@ -271,6 +281,9 @@ edaf80::Assignment5::run()
 			ImGui::Checkbox("Show basis", &show_basis);
 			ImGui::SliderFloat("Basis thickness scale", &basis_thickness_scale, 0.0f, 1.0f);
 			ImGui::SliderFloat("Basis length scale", &basis_length_scale, 0.0f, 1.0f);
+			ImGui::SliderFloat("Camera forget factor", &camera_forget_factor, 0.0f, 1.0f);
+			ImGui::SliderFloat3("Camera translation", glm::value_ptr(camera_translation_local), -2.0f, 2.0f);
+			ImGui::SliderFloat3("Camera look at", glm::value_ptr(camera_look_at_local), -2.0f, 2.0f);
 		}
 		ImGui::End();
 

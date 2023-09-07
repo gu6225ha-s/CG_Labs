@@ -6,6 +6,12 @@ interpolation::evalLERP(glm::vec3 const& p0, glm::vec3 const& p1, float const x)
 	return (1.0f - x) * p0 + x * p1;
 }
 
+glm::vec4
+interpolation::evalLERP(glm::vec4 const& p0, glm::vec4 const& p1, float const x)
+{
+	return (1.0f - x) * p0 + x * p1;
+}
+
 glm::vec3
 interpolation::evalCatmullRom(glm::vec3 const& p0, glm::vec3 const& p1,
                               glm::vec3 const& p2, glm::vec3 const& p3,

@@ -225,6 +225,11 @@ edaf80::Assignment5::run()
 	// Camera trajectory forget factor
 	float camera_forget_factor = 0.05f;
 
+	ImGuiIO &io = ImGui::GetIO();
+	io.Fonts->AddFontDefault(nullptr);
+	auto font_path = config::resources_path("fonts/Nasa21-l23X.ttf");
+	ImFont *font = io.Fonts->AddFontFromFileTTF(font_path.c_str(), 64.0f, nullptr, nullptr);
+
 	while (!glfwWindowShouldClose(window)) {
 		auto const nowTime = std::chrono::high_resolution_clock::now();
 		auto const deltaTimeUs = std::chrono::duration_cast<std::chrono::microseconds>(nowTime - lastTime);
@@ -324,6 +329,16 @@ edaf80::Assignment5::run()
 			ImGui::SliderFloat3("Spaceship angular velocity", glm::value_ptr(spaceship.angular_velocity()), 0.0f, glm::radians<float>(5.0f));
 		}
 		ImGui::End();
+
+		bool const draw_hud = ImGui::Begin("HUD", nullptr, ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs);
+		ImGui::SetWindowPos(ImVec2(10.0f, 10.0f), ImGuiCond_Always);
+		if (draw_hud) {
+			ImGui::PushFont( font );
+			ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "00001010"); // FIXME
+			ImGui::PopFont();
+		}
+		ImGui::End();
+
 
 		if (show_basis)
 			bonobo::renderBasis(basis_thickness_scale, basis_length_scale, mCamera.GetWorldToClipMatrix());

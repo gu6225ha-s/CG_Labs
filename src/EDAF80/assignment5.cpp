@@ -148,7 +148,7 @@ edaf80::Assignment5::run()
 		return;
 	}
 	// Set velocity (x-fwd, y-up, z-right)
-	spaceship.velocity() = glm::vec3(0.25f, 0.0f, 0.0f);
+	spaceship.velocity() = glm::vec3(0.5f, 0.0f, 0.0f);
 	spaceship.angular_velocity() = glm::vec3(glm::radians<float>(1.0f), 0.0f, glm::radians<float>(0.5f));
 	// Translate the root node so that the model is centered around the origin in the local frame
 	spaceship.nodes()[0].get_transform().SetTranslate(glm::vec3(0.45f, 0.0f, 0.0f));
@@ -225,10 +225,14 @@ edaf80::Assignment5::run()
 	// Camera trajectory forget factor
 	float camera_forget_factor = 0.05f;
 
+	// Load font for the HUD
 	ImGuiIO &io = ImGui::GetIO();
 	io.Fonts->AddFontDefault(nullptr);
 	auto font_path = config::resources_path("fonts/Nasa21-l23X.ttf");
 	ImFont *font = io.Fonts->AddFontFromFileTTF(font_path.c_str(), 64.0f, nullptr, nullptr);
+
+	// Score
+	int score = 0;
 
 	while (!glfwWindowShouldClose(window)) {
 		auto const nowTime = std::chrono::high_resolution_clock::now();
@@ -280,6 +284,7 @@ edaf80::Assignment5::run()
 		auto spaceship_normal = spaceship.transform() * glm::vec4(1.0f, 0.0f, 0.0f, 0.0f);
 		for (auto &torus: toruses) {
 			if (torus.active() && torus.intersects(spaceship_position, spaceship_normal)) {
+				score += 100; // TODO
 				torus.inactivate();
 			}
 		}
@@ -331,10 +336,11 @@ edaf80::Assignment5::run()
 		ImGui::End();
 
 		bool const draw_hud = ImGui::Begin("HUD", nullptr, ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs);
-		ImGui::SetWindowPos(ImVec2(10.0f, 10.0f), ImGuiCond_Always);
 		if (draw_hud) {
-			ImGui::PushFont( font );
-			ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "00001010"); // FIXME
+			ImGui::SetWindowPos(ImVec2(10.0f, 10.0f), ImGuiCond_Always);
+			ImGui::SetWindowSize(ImVec2(200.0f, 100.0f), ImGuiCond_Always);
+			ImGui::PushFont(font);
+			ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "%06d", score);
 			ImGui::PopFont();
 		}
 		ImGui::End();

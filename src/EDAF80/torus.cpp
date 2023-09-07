@@ -12,6 +12,10 @@ Torus::Torus(const glm::mat4 &transform, const float major_radius, const float m
 	_node.set_geometry(_shape);
 	glm_mat4_to_trs_transform(transform, _node.get_transform());
 
+	_world_to_model = glm::inverse(transform);
+
+	_major_radius = major_radius;
+
 	_active = true;
 }
 
@@ -28,7 +32,8 @@ void Torus::render(const glm::mat4 &view_projection, bool show_basis, float thic
 	}
 }
 
-bool Torus::intersects(const glm::vec3 &point) const
+bool Torus::intersects(const glm::vec4 &point) const
 {
-	return false; // FIXME
+	auto point_local = _world_to_model * point;
+	return glm::l2Norm(glm::vec3(point_local)) < 0.7f * _major_radius;
 }

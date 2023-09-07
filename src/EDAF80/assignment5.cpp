@@ -124,9 +124,9 @@ edaf80::Assignment5::run()
 	}
 	// Set velocity (x-fwd, y-up, z-right)
 	spaceship.velocity() = glm::vec3(0.25f, 0.0f, 0.0f);
-	spaceship.angular_velocity() = glm::vec3(glm::radians<float>(0.4f));
+	spaceship.angular_velocity() = glm::vec3(glm::radians<float>(1.0f), 0.0f, glm::radians<float>(0.5f));
 	// Translate the root node so that the model is centered around the origin in the local frame
-	spaceship.nodes()[0].get_transform().SetTranslate(glm::vec3(0.3f, 0.0f, 0.0f));
+	spaceship.nodes()[0].get_transform().SetTranslate(glm::vec3(0.45f, 0.0f, 0.0f));
 	// Scale the spaceship
 	spaceship.nodes()[0].get_transform().SetScale(glm::vec3(0.01f));
 	for (auto &node: spaceship.nodes()) {
@@ -246,6 +246,13 @@ edaf80::Assignment5::run()
 
 		spaceship.update(inputHandler, std::chrono::duration<float>(deltaTimeUs).count());
 
+		auto spaceship_position = spaceship.transform() * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+		for (auto &torus: toruses) {
+			if (torus.active() && torus.intersects(spaceship_position)) {
+				torus.inactivate();
+			}
+		}
+
 		camera_translation = interpolation::evalLERP(camera_translation, spaceship.transform() * camera_translation_local, camera_forget_factor);
 		camera_look_at = interpolation::evalLERP(camera_look_at, spaceship.transform() * camera_look_at_local, camera_forget_factor);
 		camera_up = interpolation::evalLERP(camera_up, spaceship.transform() * glm::vec4(0.0f, 1.0f, 0.0f, 0.0f), camera_forget_factor);
@@ -284,6 +291,9 @@ edaf80::Assignment5::run()
 			ImGui::SliderFloat("Camera forget factor", &camera_forget_factor, 0.0f, 1.0f);
 			ImGui::SliderFloat3("Camera translation", glm::value_ptr(camera_translation_local), -2.0f, 2.0f);
 			ImGui::SliderFloat3("Camera look at", glm::value_ptr(camera_look_at_local), -2.0f, 2.0f);
+			ImGui::SliderFloat3("Light Position", glm::value_ptr(light_position), -20.0f, 20.0f);
+			ImGui::SliderFloat3("Spaceship velocity", glm::value_ptr(spaceship.velocity()), 0.0f, 2.0f);
+			ImGui::SliderFloat3("Spaceship angular velocity", glm::value_ptr(spaceship.angular_velocity()), 0.0f, glm::radians<float>(5.0f));
 		}
 		ImGui::End();
 

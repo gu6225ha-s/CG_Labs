@@ -36,29 +36,6 @@ void ai_transform_to_trs_transform(const aiMatrix4x4 &ai_trafo, TRSTransformf &t
 	trs_trafo.SetRotate(glm::angle(quat), glm::axis(quat));
 }
 
-void Spaceship::render(const glm::mat4 &view_projection, bool show_basis, float thickness_scale, float length_scale) const
-{
-	std::stack<std::pair<const Node *, glm::mat4>> stack;
-	stack.emplace(&_nodes.at(0), _transform);
-
-	while (!stack.empty()) {
-		const Node *node;
-		glm::mat4 parent_transform;
-		std::tie(node, parent_transform) = stack.top();
-		stack.pop();
-
-		node->render(view_projection, parent_transform);
-		parent_transform = parent_transform * node->get_transform().GetMatrix();
-		for (size_t i = 0; i < node->get_children_nb(); i++) {
-			stack.emplace(node->get_child(i), parent_transform);
-		}
-	}
-
-	if (show_basis) {
-		bonobo::renderBasis(thickness_scale, length_scale, view_projection, _nodes.at(0).get_transform().GetMatrix());
-	}
-}
-
 bool Spaceship::load(const std::string &path)
 {
 	_meshes.clear();
@@ -67,6 +44,7 @@ bool Spaceship::load(const std::string &path)
 	// Load meshes
 	_meshes = bonobo::loadObjects(path);
 	if (_meshes.size() == 0) {
+		LogError("Failed to load meshes from '%s'", path.c_str());
 		return false;
 	}
 
@@ -74,6 +52,7 @@ bool Spaceship::load(const std::string &path)
 	Assimp::Importer importer;
 	auto const assimp_scene = importer.ReadFile(path, 0);
 	if (assimp_scene == nullptr || assimp_scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || assimp_scene->mRootNode == nullptr) {
+		LogError("Failed to import scene from '%s'", path.c_str());
 		return false;
 	}
 
@@ -112,4 +91,32 @@ bool Spaceship::load(const std::string &path)
 	}
 
 	return true;
+}
+
+void Spaceship::render(const glm::mat4 &view_projection, bool show_basis, float thickness_scale, float length_scale) const
+{
+	std::stack<std::pair<const Node *, glm::mat4>> stack;
+	stack.emplace(&_nodes.at(0), _transform);
+
+	while (!stack.empty()) {
+		const Node *node;
+		glm::mat4 parent_transform;
+		std::tie(node, parent_transform) = stack.top();
+		stack.pop();
+
+		node->render(view_projection, parent_transform);
+		parent_transform = parent_transform * node->get_transform().GetMatrix();
+		for (size_t i = 0; i < node->get_children_nb(); i++) {
+			stack.emplace(node->get_child(i), parent_transform);
+		}
+	}
+
+	if (show_basis) {
+		bonobo::renderBasis(thickness_scale, length_scale, view_projection, _transform);
+	}
+}
+
+void Spaceship::update(const float elapsed_time_s)
+{
+	_transform = glm::translate(_transform, elapsed_time_s * _velocity);
 }

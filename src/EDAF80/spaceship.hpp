@@ -3,13 +3,19 @@
 #include "core/node.hpp"
 
 #include <glm/mat4x4.hpp>
+#include <glm/vec3.hpp>
 
 /// @brief Spaceship class
 class Spaceship
 {
 public:
 	/// @brief Create spaceship
-	Spaceship() : _transform(1.0f) {}
+	Spaceship() : _transform(1.0f), _velocity(0.0f) {}
+
+	/// @brief Load spaceship model from file
+	/// @param path Path to model
+	/// @return true if successfully loaded and false otherwise
+	bool load(const std::string &path);
 
 	/// @brief Render the spaceship
 	/// @param view_projection World space to clip space matrix
@@ -18,21 +24,25 @@ public:
 	/// @param length_scale Length of axes
 	void render(const glm::mat4 &view_projection, bool show_basis, float thickness_scale, float length_scale) const;
 
-	/// @brief Load spaceship model from file
-	/// @param path Path to model
-	/// @return true if successfully loaded and false otherwise
-	bool load(const std::string &path);
+	/// @brief Update the position of the spaceship
+	/// @param elapsed_time_s Elapsed time in seconds since last update
+	void update(const float elapsed_time_s);
 
-	/// @brief Get the nodes of the scene graph
+	/// @brief Get the nodes of the scene graph, with the root node at index 0
 	/// @return The vector of nodes
 	std::vector<Node> &nodes() { return _nodes; }
 
-	/// @brief Get the transform which is applied to the whole scene graph
+	/// @brief Get the transform which is applied to the whole scene graph (model -> world)
 	/// @return The root node transform
 	glm::mat4 &transform() { return _transform; }
+
+	/// @brief Get velocity vector, in model local coordinates
+	/// @return The velocity vector
+	glm::vec3 &velocity() { return _velocity; }
 
 private:
 	std::vector<bonobo::mesh_data> _meshes;
 	std::vector<Node> _nodes;
 	glm::mat4 _transform;
+	glm::vec3 _velocity;
 };

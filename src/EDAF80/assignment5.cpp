@@ -122,10 +122,12 @@ edaf80::Assignment5::run()
 		LogError("Failed to load the spaceship model");
 		return;
 	}
-	spaceship.transform() = glm::rotate(
-		glm::scale(glm::mat4(1.0f), glm::vec3(0.01f)),
-		glm::half_pi<float>(),
-		glm::vec3(0.0f, 1.0f, 0.0f));
+	// Set velocity (x-fwd, y-up, z-right)
+	spaceship.velocity() = glm::vec3(0.1f, 0.0f, 0.0f);
+	// Translate the root node so that the model is centered around the origin in the local frame
+	spaceship.nodes()[0].get_transform().SetTranslate(glm::vec3(0.3f, 0.0f, 0.0f));
+	// Scale the spaceship
+	spaceship.nodes()[0].get_transform().SetScale(glm::vec3(0.01f));
 	for (auto &node: spaceship.nodes()) {
 		node.set_program(&phong_shader, phong_set_uniforms);
 	}
@@ -233,6 +235,20 @@ edaf80::Assignment5::run()
 		//
 		// Todo: If you need to handle inputs, you can do it here
 		//
+
+		auto transform = spaceship.transform();
+		float angular_velocity = glm::radians<float>(0.5f);
+		if (inputHandler.GetKeycodeState(GLFW_KEY_UP) & PRESSED)
+			transform = glm::rotate(transform, -angular_velocity, glm::vec3(0.0f, 0.0f, 1.0f));
+		if (inputHandler.GetKeycodeState(GLFW_KEY_DOWN) & PRESSED)
+			transform = glm::rotate(transform, angular_velocity, glm::vec3(0.0f, 0.0f, 1.0f));
+		if (inputHandler.GetKeycodeState(GLFW_KEY_LEFT) & PRESSED)
+			transform = glm::rotate(transform, angular_velocity, glm::vec3(0.0f, 1.0f, 0.0f));
+		if (inputHandler.GetKeycodeState(GLFW_KEY_RIGHT) & PRESSED)
+			transform = glm::rotate(transform, -angular_velocity, glm::vec3(0.0f, 1.0f, 0.0f));
+		spaceship.transform() = transform;
+
+		spaceship.update(std::chrono::duration<float>(deltaTimeUs).count());
 
 
 		mWindowManager.NewImGuiFrame();

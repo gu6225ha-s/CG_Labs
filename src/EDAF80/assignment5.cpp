@@ -123,7 +123,8 @@ edaf80::Assignment5::run()
 		return;
 	}
 	// Set velocity (x-fwd, y-up, z-right)
-	spaceship.velocity() = glm::vec3(0.1f, 0.0f, 0.0f);
+	spaceship.velocity() = glm::vec3(0.25f, 0.0f, 0.0f);
+	spaceship.angular_velocity() = glm::vec3(glm::radians<float>(0.4f));
 	// Translate the root node so that the model is centered around the origin in the local frame
 	spaceship.nodes()[0].get_transform().SetTranslate(glm::vec3(0.3f, 0.0f, 0.0f));
 	// Scale the spaceship
@@ -236,19 +237,11 @@ edaf80::Assignment5::run()
 		// Todo: If you need to handle inputs, you can do it here
 		//
 
-		auto transform = spaceship.transform();
-		float angular_velocity = glm::radians<float>(0.5f);
-		if (inputHandler.GetKeycodeState(GLFW_KEY_UP) & PRESSED)
-			transform = glm::rotate(transform, -angular_velocity, glm::vec3(0.0f, 0.0f, 1.0f));
-		if (inputHandler.GetKeycodeState(GLFW_KEY_DOWN) & PRESSED)
-			transform = glm::rotate(transform, angular_velocity, glm::vec3(0.0f, 0.0f, 1.0f));
-		if (inputHandler.GetKeycodeState(GLFW_KEY_LEFT) & PRESSED)
-			transform = glm::rotate(transform, angular_velocity, glm::vec3(0.0f, 1.0f, 0.0f));
-		if (inputHandler.GetKeycodeState(GLFW_KEY_RIGHT) & PRESSED)
-			transform = glm::rotate(transform, -angular_velocity, glm::vec3(0.0f, 1.0f, 0.0f));
-		spaceship.transform() = transform;
+		spaceship.update(inputHandler, std::chrono::duration<float>(deltaTimeUs).count());
 
-		spaceship.update(std::chrono::duration<float>(deltaTimeUs).count());
+		mCamera.mWorld.SetTranslate(spaceship.transform() * glm::vec4(-1.5f, 0.5f, 0.0f, 1.0f));
+		mCamera.mWorld.LookAt(spaceship.transform() * glm::vec4(0.0f, 0.2f, 0.0f, 1.0f),
+		                      spaceship.transform() * glm::vec4(0.0f, 1.0f, 0.0f, 0.0f));
 
 
 		mWindowManager.NewImGuiFrame();
@@ -263,7 +256,7 @@ edaf80::Assignment5::run()
 				torus.render(mCamera.GetWorldToClipMatrix(), show_basis, basis_thickness_scale, basis_length_scale);
 			}
 
-			spaceship.render(mCamera.GetWorldToClipMatrix(), show_basis, basis_thickness_scale, basis_length_scale);
+			spaceship.render(mCamera.GetWorldToClipMatrix(), show_basis, 0.4f * basis_thickness_scale, 0.4f * basis_length_scale);
 		}
 
 

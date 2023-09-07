@@ -72,6 +72,16 @@ edaf80::Assignment5::run()
 		return;
 	}
 
+	GLuint default_shader = 0u;
+	program_manager.CreateAndRegisterProgram("Default",
+	                                         { { ShaderType::vertex, "EDAF80/default.vert" },
+	                                           { ShaderType::fragment, "EDAF80/default.frag" } },
+	                                         default_shader);
+	if (default_shader == 0u) {
+		LogError("Failed to load default shader");
+		return;
+	}
+
 	GLuint phong_shader = 0u;
 	program_manager.CreateAndRegisterProgram("Phong",
 	                                         { { ShaderType::vertex, "EDAF80/phong.vert" },
@@ -83,7 +93,7 @@ edaf80::Assignment5::run()
 	}
 
 	// Shader uniforms
-	auto light_position = glm::vec3(-2.0f, 4.0f, 2.0f); // FIXME
+	auto light_position = glm::vec3(-20.0f, 40.0f, 20.0f);
 	bool use_normal_mapping = true;
 	auto camera_position = mCamera.mWorld.GetTranslation();
 	auto const phong_set_uniforms = [&use_normal_mapping,&light_position,&camera_position](GLuint program){
@@ -92,13 +102,13 @@ edaf80::Assignment5::run()
 		glUniform3fv(glGetUniformLocation(program, "camera_position"), 1, glm::value_ptr(camera_position));
 	};
 
-	// Load skybox
-	auto skybox_shape = parametric_shapes::createSphere(100.0f, 100u, 100u);
-	if (skybox_shape.vao == 0u) {
-		LogError("Failed to retrieve the mesh for the skybox");
+	auto sphere = parametric_shapes::createSphere(1.0f, 100u, 100u);
+	if (sphere.vao == 0u) {
+		LogError("Failed to create sphere mesh");
 		return;
 	}
 
+	// Load skybox
 	GLuint cubemap = bonobo::loadTextureCubeMap(
 		config::resources_path("cubemaps/Space/right.png"),
 		config::resources_path("cubemaps/Space/left.png"),
@@ -112,9 +122,24 @@ edaf80::Assignment5::run()
 	}
 
 	Node skybox;
-	skybox.set_geometry(skybox_shape);
+	skybox.set_geometry(sphere);
+	skybox.get_transform().SetScale(100.0f);
 	skybox.set_program(&skybox_shader);
 	skybox.add_texture("cubemap", cubemap, GL_TEXTURE_CUBE_MAP);
+
+	// Load sun
+	GLuint const sun_texture = bonobo::loadTexture2D(config::resources_path("planets/2k_sun.jpg"));
+	if (sun_texture == 0u) {
+		LogError("Failed to load the texture for the sun");
+		return;
+	}
+
+	Node sun;
+	sun.set_geometry(sphere);
+	sun.get_transform().SetScale(10.0f);
+	sun.get_transform().SetTranslate(light_position);
+	sun.add_texture("diffuse_texture", sun_texture, GL_TEXTURE_2D);
+	sun.set_program(&default_shader);
 
 	// Load spaceship
 	Spaceship spaceship;
@@ -269,6 +294,8 @@ edaf80::Assignment5::run()
 
 		if (!shader_reload_failed) {
 			skybox.render(mCamera.GetWorldToClipMatrix());
+
+			sun.render(mCamera.GetWorldToClipMatrix());
 
 			for (const auto &torus: toruses) {
 				torus.render(mCamera.GetWorldToClipMatrix(), show_basis, basis_thickness_scale, basis_length_scale);

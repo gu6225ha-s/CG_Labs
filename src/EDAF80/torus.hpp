@@ -25,8 +25,9 @@ public:
 
 	/// @brief Check if point is passing through the torus
 	/// @param point Query point, in world coordinates
+	/// @param normal Query normal, in world coordinates
 	/// @return true if point intersects with the torus and false otherwise
-	bool intersects(const glm::vec4 &point) const;
+	bool intersects(const glm::vec4 &point, const glm::vec4 &normal) const;
 
 	/// @brief Get the node of the torus
 	/// @return A reference to the node

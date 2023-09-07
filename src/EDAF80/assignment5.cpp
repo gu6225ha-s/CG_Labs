@@ -247,8 +247,9 @@ edaf80::Assignment5::run()
 		spaceship.update(inputHandler, std::chrono::duration<float>(deltaTimeUs).count());
 
 		auto spaceship_position = spaceship.transform() * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+		auto spaceship_normal = spaceship.transform() * glm::vec4(1.0f, 0.0f, 0.0f, 0.0f);
 		for (auto &torus: toruses) {
-			if (torus.active() && torus.intersects(spaceship_position)) {
+			if (torus.active() && torus.intersects(spaceship_position, spaceship_normal)) {
 				torus.inactivate();
 			}
 		}

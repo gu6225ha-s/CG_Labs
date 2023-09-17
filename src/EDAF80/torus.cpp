@@ -35,7 +35,7 @@ void Torus::render(const glm::mat4 &view_projection, bool show_basis, float thic
 bool Torus::intersects(const glm::vec4 &point, const glm::vec4 &normal) const
 {
 	auto point_local = _world_to_model * point;
-	if (glm::l2Norm(glm::vec3(point_local)) > 0.7f * _major_radius) {
+	if (glm::l2Norm(glm::vec3(point_local)) > 0.75f * _major_radius) {
 		return false;
 	}
 

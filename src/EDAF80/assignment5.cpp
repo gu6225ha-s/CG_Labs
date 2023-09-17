@@ -162,16 +162,17 @@ edaf80::Assignment5::run()
 
 	// Create toruses
 	// FIXME: Set proper control point locations
-	std::array<glm::vec3, 9> control_point_locations = {
-		glm::vec3( 0.0f,  0.0f,  0.0f),
-		glm::vec3( 1.0f,  1.8f,  1.0f),
-		glm::vec3( 2.0f,  1.2f,  2.0f),
-		glm::vec3( 3.0f,  3.0f,  3.0f),
-		glm::vec3( 3.0f,  0.0f,  3.0f),
-		glm::vec3(-2.0f, -1.0f,  3.0f),
-		glm::vec3(-3.0f, -3.0f, -3.0f),
-		glm::vec3(-2.0f, -1.2f, -2.0f),
-		glm::vec3(-1.0f, -1.8f, -1.0f),
+	std::array<glm::vec3, 10> control_point_locations = {
+		glm::vec3( 1.0f,  0.0f,  0.0f),
+		glm::vec3( 4.0f,  0.0f,  0.0f),
+		glm::vec3( 7.0f,  1.5f,  1.5f),
+		glm::vec3( 8.5f,  4.5f,  1.5f),
+		glm::vec3( 7.0f,  6.0f,  1.5f),
+		glm::vec3(4.0f, 4.5f,  0.0f),
+		glm::vec3(1.0f, 3.0f, 3.0f),
+		glm::vec3(-4.0f, 0.0f, 4.5f),
+		glm::vec3(-5.5f, -3.0f, 1.5f),
+		glm::vec3(-5.0f, -4.0f, -1.5f),
 	};
 	std::vector<Torus> toruses;
 	float catmull_rom_tension = 0.5f;
@@ -231,16 +232,20 @@ edaf80::Assignment5::run()
 	ImGuiIO &io = ImGui::GetIO();
 	io.Fonts->AddFontDefault(nullptr);
 	auto font_path = config::resources_path("fonts/Nasa21-l23X.ttf");
-	ImFont *font = io.Fonts->AddFontFromFileTTF(font_path.c_str(), 64.0f, nullptr, nullptr);
+	ImFont *font = io.Fonts->AddFontFromFileTTF(font_path.c_str(), 48.0f, nullptr, nullptr);
 
-	// Score
-	int score = 0;
+	// Elapsed time since start
+	float elapsed_time_s = 0.0f;
+
+	// Number of toruses inactivated
+	size_t n_torus_inactive = 0;
 
 	while (!glfwWindowShouldClose(window)) {
 		auto const nowTime = std::chrono::high_resolution_clock::now();
 		auto const deltaTimeUs = std::chrono::duration_cast<std::chrono::microseconds>(nowTime - lastTime);
 		auto const deltaTimeS = std::chrono::duration<float>(deltaTimeUs).count();
 		lastTime = nowTime;
+		elapsed_time_s += deltaTimeS;
 
 		auto& io = ImGui::GetIO();
 		inputHandler.SetUICapture(io.WantCaptureMouse, io.WantCaptureKeyboard);
@@ -289,8 +294,8 @@ edaf80::Assignment5::run()
 		auto spaceship_normal = spaceship.transform() * glm::vec4(1.0f, 0.0f, 0.0f, 0.0f);
 		for (auto &torus: toruses) {
 			if (torus.active() && torus.intersects(spaceship_position, spaceship_normal)) {
-				score += 100; // TODO
 				torus.inactivate();
+				n_torus_inactive++;
 			}
 		}
 
@@ -343,9 +348,12 @@ edaf80::Assignment5::run()
 		bool const draw_hud = ImGui::Begin("HUD", nullptr, ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs);
 		if (draw_hud) {
 			ImGui::SetWindowPos(ImVec2(10.0f, 10.0f), ImGuiCond_Always);
-			ImGui::SetWindowSize(ImVec2(200.0f, 100.0f), ImGuiCond_Always);
+			ImGui::SetWindowSize(ImVec2(250.0f, 100.0f), ImGuiCond_Always);
 			ImGui::PushFont(font);
-			ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "%06d", score);
+			ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "Toruses: %zu/%zu", n_torus_inactive, toruses.size());
+			int minutes = (int)elapsed_time_s / 60;
+			float seconds = elapsed_time_s - 60 * minutes;
+			ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "Time: %02d:%04.1f", minutes, seconds);
 			ImGui::PopFont();
 		}
 		ImGui::End();

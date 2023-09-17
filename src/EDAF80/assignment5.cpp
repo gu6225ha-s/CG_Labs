@@ -94,9 +94,11 @@ edaf80::Assignment5::run()
 
 	// Shader uniforms
 	auto light_position = glm::vec3(-20.0f, 40.0f, 20.0f);
+	bool use_emissive_texture = false;
 	bool use_normal_mapping = true;
 	auto camera_position = mCamera.mWorld.GetTranslation();
-	auto const phong_set_uniforms = [&use_normal_mapping,&light_position,&camera_position](GLuint program){
+	auto const phong_set_uniforms = [&use_emissive_texture,&use_normal_mapping,&light_position,&camera_position](GLuint program){
+		glUniform1i(glGetUniformLocation(program, "use_emissive_texture"), use_emissive_texture ? 1 : 0);
 		glUniform1i(glGetUniformLocation(program, "use_normal_mapping"), use_normal_mapping ? 1 : 0);
 		glUniform3fv(glGetUniformLocation(program, "light_position"), 1, glm::value_ptr(light_position));
 		glUniform3fv(glGetUniformLocation(program, "camera_position"), 1, glm::value_ptr(camera_position));
@@ -237,6 +239,7 @@ edaf80::Assignment5::run()
 	while (!glfwWindowShouldClose(window)) {
 		auto const nowTime = std::chrono::high_resolution_clock::now();
 		auto const deltaTimeUs = std::chrono::duration_cast<std::chrono::microseconds>(nowTime - lastTime);
+		auto const deltaTimeS = std::chrono::duration<float>(deltaTimeUs).count();
 		lastTime = nowTime;
 
 		auto& io = ImGui::GetIO();
@@ -278,7 +281,9 @@ edaf80::Assignment5::run()
 		// Todo: If you need to handle inputs, you can do it here
 		//
 
-		spaceship.update(inputHandler, std::chrono::duration<float>(deltaTimeUs).count());
+		sun.get_transform().RotateY(deltaTimeS / 20.0f);
+
+		use_emissive_texture = spaceship.update(inputHandler, deltaTimeS);
 
 		auto spaceship_position = spaceship.transform() * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
 		auto spaceship_normal = spaceship.transform() * glm::vec4(1.0f, 0.0f, 0.0f, 0.0f);

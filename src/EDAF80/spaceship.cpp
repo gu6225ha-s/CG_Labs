@@ -116,7 +116,7 @@ void Spaceship::render(const glm::mat4 &view_projection, bool show_basis, float 
 	}
 }
 
-void Spaceship::update(InputHandler &input_handler, const float elapsed_time_s)
+bool Spaceship::update(InputHandler &input_handler, const float elapsed_time_s)
 {
 	if (input_handler.GetKeycodeState(GLFW_KEY_UP) & PRESSED)
 		_transform = glm::rotate(_transform, -_angular_velocity.z, glm::vec3(0.0f, 0.0f, 1.0f));
@@ -127,5 +127,10 @@ void Spaceship::update(InputHandler &input_handler, const float elapsed_time_s)
 	if (input_handler.GetKeycodeState(GLFW_KEY_RIGHT) & PRESSED)
 		_transform = glm::rotate(_transform, _angular_velocity.x, glm::vec3(1.0f, 0.0f, 0.0f));
 
-	_transform = glm::translate(_transform, elapsed_time_s * _velocity);
+	bool boost = input_handler.GetKeycodeState(GLFW_KEY_SPACE) & PRESSED;
+
+	float velocity_scale = boost ? 2.0f : 1.0f;
+	_transform = glm::translate(_transform, elapsed_time_s * velocity_scale * _velocity);
+
+	return boost;
 }

@@ -28,7 +28,8 @@ public:
 	/// @brief Update the position of the spaceship
 	/// @param input_handler Input handler
 	/// @param elapsed_time_s Elapsed time in seconds since last update
-	void update(InputHandler &input_handler, const float elapsed_time_s);
+	/// @return true if the spaceship is boosting and false otherwise
+	bool update(InputHandler &input_handler, const float elapsed_time_s);
 
 	/// @brief Get the nodes of the scene graph, with the root node at index 0
 	/// @return The vector of nodes

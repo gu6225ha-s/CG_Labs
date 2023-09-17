@@ -240,12 +240,17 @@ edaf80::Assignment5::run()
 	// Number of toruses inactivated
 	size_t n_torus_inactive = 0;
 
+	enum {
+		GAME_STATE_SPLASH,
+		GAME_STATE_RUN,
+		GAME_STATE_OVER,
+	} game_state = GAME_STATE_SPLASH;
+
 	while (!glfwWindowShouldClose(window)) {
 		auto const nowTime = std::chrono::high_resolution_clock::now();
 		auto const deltaTimeUs = std::chrono::duration_cast<std::chrono::microseconds>(nowTime - lastTime);
 		auto const deltaTimeS = std::chrono::duration<float>(deltaTimeUs).count();
 		lastTime = nowTime;
-		elapsed_time_s += deltaTimeS;
 
 		auto& io = ImGui::GetIO();
 		inputHandler.SetUICapture(io.WantCaptureMouse, io.WantCaptureKeyboard);
@@ -268,6 +273,8 @@ edaf80::Assignment5::run()
 			show_gui = !show_gui;
 		if (inputHandler.GetKeycodeState(GLFW_KEY_F11) & JUST_RELEASED)
 			mWindowManager.ToggleFullscreenStatusForWindow(window);
+		if (game_state == GAME_STATE_SPLASH && (inputHandler.GetKeycodeState(GLFW_KEY_SPACE) & PRESSED))
+			game_state = GAME_STATE_RUN;
 
 
 		// Retrieve the actual framebuffer size: for HiDPI monitors,
@@ -288,14 +295,18 @@ edaf80::Assignment5::run()
 
 		sun.get_transform().RotateY(deltaTimeS / 20.0f);
 
-		use_emissive_texture = spaceship.update(inputHandler, deltaTimeS);
+		if (game_state == GAME_STATE_RUN) {
+			elapsed_time_s += deltaTimeS;
 
-		auto spaceship_position = spaceship.transform() * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
-		auto spaceship_normal = spaceship.transform() * glm::vec4(1.0f, 0.0f, 0.0f, 0.0f);
-		for (auto &torus: toruses) {
-			if (torus.active() && torus.intersects(spaceship_position, spaceship_normal)) {
-				torus.inactivate();
-				n_torus_inactive++;
+			use_emissive_texture = spaceship.update(inputHandler, deltaTimeS);
+
+			auto spaceship_position = spaceship.transform() * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+			auto spaceship_normal = spaceship.transform() * glm::vec4(1.0f, 0.0f, 0.0f, 0.0f);
+			for (auto &torus: toruses) {
+				if (torus.active() && torus.intersects(spaceship_position, spaceship_normal)) {
+					torus.inactivate();
+					n_torus_inactive++;
+				}
 			}
 		}
 
@@ -345,19 +356,56 @@ edaf80::Assignment5::run()
 		}
 		ImGui::End();
 
-		bool const draw_hud = ImGui::Begin("HUD", nullptr, ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs);
-		if (draw_hud) {
-			ImGui::SetWindowPos(ImVec2(10.0f, 10.0f), ImGuiCond_Always);
-			ImGui::SetWindowSize(ImVec2(250.0f, 100.0f), ImGuiCond_Always);
-			ImGui::PushFont(font);
-			ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "Toruses: %zu/%zu", n_torus_inactive, toruses.size());
-			int minutes = (int)elapsed_time_s / 60;
-			float seconds = elapsed_time_s - 60 * minutes;
-			ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "Time: %02d:%04.1f", minutes, seconds);
-			ImGui::PopFont();
-		}
-		ImGui::End();
+		ImVec4 text_color(1.0f, 1.0f, 0.0f, 1.0f);
 
+		switch (game_state) {
+			case GAME_STATE_SPLASH:
+			{
+				bool const draw_splash = ImGui::Begin("Splash", nullptr, ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs);
+				if (draw_splash) {
+					ImVec2 border_size(200.0f, 170.0f);
+					ImGui::SetWindowPos(border_size, ImGuiCond_Always);
+					ImVec2 window_size(ImVec2(config::resolution_x - 2 * border_size.x, config::resolution_y - 2 * border_size.y));
+					ImGui::SetWindowSize(window_size, ImGuiCond_Always);
+					ImGui::PushFont(font);
+					const char *title = "Torus Ride";
+					ImGui::SetCursorPosX((window_size.x - ImGui::CalcTextSize(title).x) * 0.5f);
+					ImGui::TextColored(text_color, "%s", title);
+					const char *goal = "\nGoal:\n"
+					                   "\tFly through all the toruses as quickly as possible.\n";
+					ImGui::TextColored(text_color, "%s", goal);
+					const char *controls = "\nControls:\n"
+					                       "\tLeft/Right arrow: Adjust roll angle\n"
+					                       "\tUp/Down arrow: Adjust pitch angle\n"
+					                       "\tSpace - Boost\n";
+					ImGui::TextColored(text_color, "%s", controls);
+					const char *start = "\nPress space to start";
+					ImGui::SetCursorPosX((window_size.x - ImGui::CalcTextSize(start).x) * 0.5f);
+					ImGui::TextColored(text_color, "%s", start);
+					ImGui::PopFont();
+				}
+				ImGui::End();
+				break;
+			}
+			case GAME_STATE_RUN:
+			{
+				bool const draw_hud = ImGui::Begin("HUD", nullptr, ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs);
+				if (draw_hud) {
+					ImGui::SetWindowPos(ImVec2(10.0f, 10.0f), ImGuiCond_Always);
+					ImGui::SetWindowSize(ImVec2(280.0f, 100.0f), ImGuiCond_Always);
+					ImGui::PushFont(font);
+					ImGui::TextColored(text_color, "Toruses: %zu/%zu", n_torus_inactive, toruses.size());
+					int minutes = (int)elapsed_time_s / 60;
+					float seconds = elapsed_time_s - 60 * minutes;
+					ImGui::TextColored(text_color, "Time: %02d:%04.1f", minutes, seconds);
+					ImGui::PopFont();
+				}
+				ImGui::End();
+				break;
+			}
+			default:
+				break;
+		}
 
 		if (show_basis)
 			bonobo::renderBasis(basis_thickness_scale, basis_length_scale, mCamera.GetWorldToClipMatrix());

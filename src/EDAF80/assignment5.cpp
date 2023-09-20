@@ -152,6 +152,7 @@ edaf80::Assignment5::run()
 	// Set velocity (x-fwd, y-up, z-right)
 	spaceship.velocity() = glm::vec3(0.5f, 0.0f, 0.0f);
 	spaceship.angular_velocity() = glm::vec3(glm::radians<float>(1.0f), 0.0f, glm::radians<float>(0.5f));
+	spaceship.boost_multiplier() = 2.5f;
 	// Translate the root node so that the model is centered around the origin in the local frame
 	spaceship.nodes()[0].get_transform().SetTranslate(glm::vec3(0.45f, 0.0f, 0.0f));
 	// Scale the spaceship
@@ -306,6 +307,9 @@ edaf80::Assignment5::run()
 				if (torus.active() && torus.intersects(spaceship_position, spaceship_normal)) {
 					torus.inactivate();
 					n_torus_inactive++;
+					if (n_torus_inactive == toruses.size()) {
+						game_state = GAME_STATE_OVER;
+					}
 				}
 			}
 		}
@@ -357,6 +361,8 @@ edaf80::Assignment5::run()
 		ImGui::End();
 
 		ImVec4 text_color(1.0f, 1.0f, 0.0f, 1.0f);
+		int elapsed_minutes = (int)elapsed_time_s / 60;
+		float elapsed_seconds = elapsed_time_s - 60 * elapsed_minutes;
 
 		switch (game_state) {
 			case GAME_STATE_SPLASH:
@@ -395,9 +401,28 @@ edaf80::Assignment5::run()
 					ImGui::SetWindowSize(ImVec2(280.0f, 100.0f), ImGuiCond_Always);
 					ImGui::PushFont(font);
 					ImGui::TextColored(text_color, "Toruses: %zu/%zu", n_torus_inactive, toruses.size());
-					int minutes = (int)elapsed_time_s / 60;
-					float seconds = elapsed_time_s - 60 * minutes;
-					ImGui::TextColored(text_color, "Time: %02d:%04.1f", minutes, seconds);
+					ImGui::TextColored(text_color, "Time: %02d:%04.1f", elapsed_minutes, elapsed_seconds);
+					ImGui::PopFont();
+				}
+				ImGui::End();
+				break;
+			}
+			case GAME_STATE_OVER:
+			{
+				bool const draw_game_over = ImGui::Begin("GameOver", nullptr, ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs);
+				if (draw_game_over) {
+					ImVec2 border_size(400.0f, 350.0f);
+					ImGui::SetWindowPos(border_size, ImGuiCond_Always);
+					ImVec2 window_size(ImVec2(config::resolution_x - 2 * border_size.x, config::resolution_y - 2 * border_size.y));
+					ImGui::SetWindowSize(window_size, ImGuiCond_Always);
+					ImGui::PushFont(font);
+					const char *title = "Game Over";
+					ImGui::SetCursorPosX((window_size.x - ImGui::CalcTextSize(title).x) * 0.5f);
+					ImGui::TextColored(text_color, "%s", title);
+					char time[256];
+					snprintf(time, sizeof(time), "\nYour time: %02d:%04.1f", elapsed_minutes, elapsed_seconds);
+					ImGui::SetCursorPosX((window_size.x - ImGui::CalcTextSize(time).x) * 0.5f);
+					ImGui::TextColored(text_color, "%s", time);
 					ImGui::PopFont();
 				}
 				ImGui::End();

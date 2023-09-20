@@ -129,7 +129,7 @@ bool Spaceship::update(InputHandler &input_handler, const float elapsed_time_s)
 
 	bool boost = input_handler.GetKeycodeState(GLFW_KEY_SPACE) & PRESSED;
 
-	float velocity_scale = boost ? 2.0f : 1.0f;
+	float velocity_scale = boost ? _boost_multiplier : 1.0f;
 	_transform = glm::translate(_transform, elapsed_time_s * velocity_scale * _velocity);
 
 	return boost;

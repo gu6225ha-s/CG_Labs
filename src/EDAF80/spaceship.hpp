@@ -47,10 +47,15 @@ public:
 	/// @return The angular velocity vector
 	glm::vec3 &angular_velocity() { return _angular_velocity; }
 
+	/// @brief Get speed boost multiplier
+	/// @return The boost multiplier
+	float &boost_multiplier() { return _boost_multiplier; }
+
 private:
 	std::vector<bonobo::mesh_data> _meshes;
 	std::vector<Node> _nodes;
 	glm::mat4 _transform;
 	glm::vec3 _velocity;
 	glm::vec3 _angular_velocity;
+	float _boost_multiplier;
 };

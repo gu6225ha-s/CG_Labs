@@ -59,8 +59,8 @@ edaf80::Assignment4::run()
 		return;
 	}
 
-	auto skybox_shape = parametric_shapes::createSphere(250.0f, 100u, 100u);
-	if (skybox_shape.vao == 0u) {
+	auto sphere = parametric_shapes::createSphere(250.0f, 100u, 100u);
+	if (sphere.vao == 0u) {
 		LogError("Failed to retrieve the mesh for the skybox");
 		return;
 	}
@@ -78,7 +78,7 @@ edaf80::Assignment4::run()
 	}
 
 	Node skybox;
-	skybox.set_geometry(skybox_shape);
+	skybox.set_geometry(sphere);
 	skybox.set_program(&skybox_shader);
 	skybox.add_texture("cubemap", cubemap, GL_TEXTURE_CUBE_MAP);
 
@@ -124,6 +124,14 @@ edaf80::Assignment4::run()
 	water.add_texture("cubemap", cubemap, GL_TEXTURE_CUBE_MAP);
 	water.add_texture("normal_map", normal_map, GL_TEXTURE_2D);
 	water.get_transform().SetRotateX(-glm::half_pi<float>());
+
+	Node water_sphere;
+	water_sphere.set_geometry(sphere);
+	water_sphere.set_program(&water_shader, set_water_uniforms);
+	water_sphere.add_texture("cubemap", cubemap, GL_TEXTURE_CUBE_MAP);
+	water_sphere.add_texture("normal_map", normal_map, GL_TEXTURE_2D);
+	water_sphere.get_transform().SetScale(glm::vec3(0.1f));
+	water_sphere.get_transform().SetTranslate(glm::vec3(-20.0f, 40.0f, -20.0f));
 
 	glClearDepthf(1.0f);
 	glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
@@ -205,6 +213,7 @@ edaf80::Assignment4::run()
 		if (!shader_reload_failed) {
 			skybox.render(mCamera.GetWorldToClipMatrix());
 			water.render(mCamera.GetWorldToClipMatrix());
+			water_sphere.render(mCamera.GetWorldToClipMatrix());
 		}
 
 

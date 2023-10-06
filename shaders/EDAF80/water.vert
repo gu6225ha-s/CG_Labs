@@ -36,16 +36,26 @@ void wave(in wave_par par, in vec3 v, in float time, out float G, out float dGdx
 	dGdy = 0.5 * par.k * par.f * par.A * pow(s, par.k - 1.0) * c * par.D.y;
 }
 
+#define M_PI 3.1415926535897932384626433832795
+
 void main()
 {
 	// Define wave parameters
-	const wave_par wave_par1 = wave_par(1.0, vec3(-1.0, 0.0, 0.0), 0.2, 0.5, 2.0);
-	const wave_par wave_par2 = wave_par(0.5, vec3(-0.7, 0.7, 0.0), 0.4, 1.3, 2.0);
+	wave_par wave_par1 = wave_par(1.0, vec3(-1.0, 0.0, 0.0), 0.2, 0.5, 2.0);
+	wave_par wave_par2 = wave_par(0.5, vec3(-0.7, 0.7, 0.0), 0.4, 1.3, 2.0);
+
+	// Adjust direction vector slightly so that the wave offset if the same for texture
+	// coordinates 0 and 1, i.e. so there is no gap at the edges of the sphere.
+	float scale = 100.0;
+	wave_par2.D.y = 4.0 * M_PI / scale / wave_par2.f;
 
 	// Evaluate wave equation
 	float G1, G2, dG1dx, dG1dy, dG2dx, dG2dy;
-	wave(wave_par1, vertex, time, G1, dG1dx, dG1dy);
-	wave(wave_par2, vertex, time, G2, dG2dx, dG2dy);
+	// Scale texture coordinate from (0,1) to (0,100). This is equivalent to the
+	// vertex position for the quad, and proportional to theta/pi for the sphere.
+	vec3 v = scale * texcoord.yxz;
+	wave(wave_par1, v, time, G1, dG1dx, dG1dy);
+	wave(wave_par2, v, time, G2, dG2dx, dG2dy);
 
 	// TBN in wave coordinate space
 	vec3 t = vec3(1.0, 0.0, dG1dx + dG1dx);

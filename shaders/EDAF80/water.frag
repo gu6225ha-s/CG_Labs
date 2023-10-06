@@ -22,7 +22,7 @@ void main()
 {
 	// Get normal vector
 	vec3 n;
-	if (has_normal_map != 0 )
+	if (has_normal_map != 0)
 	{
 		vec3 n0 = texture(normal_map, fs_in.normalcoord0).rgb * 2.0 - 1.0;
 		vec3 n1 = texture(normal_map, fs_in.normalcoord1).rgb * 2.0 - 1.0;
@@ -41,16 +41,16 @@ void main()
 	const float n_air = 1.0, n_water = 1.33;
 	float n1, n2;
 	if (gl_FrontFacing) {
+		// Air -> water
+		n1 = n_air;
+		n2 = n_water;
+	}
+	else
+	{
 		// Water -> air
 		n1 = n_water;
 		n2 = n_air;
 		n = -n;
-	}
-	else
-	{
-		// Air -> water
-		n1 = n_air;
-		n2 = n_water;
 	}
 
 	// Basic water color

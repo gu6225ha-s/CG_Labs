@@ -123,6 +123,7 @@ edaf80::Assignment4::run()
 	water.set_program(&water_shader, set_water_uniforms);
 	water.add_texture("cubemap", cubemap, GL_TEXTURE_CUBE_MAP);
 	water.add_texture("normal_map", normal_map, GL_TEXTURE_2D);
+	water.get_transform().SetRotateX(-glm::half_pi<float>());
 
 	glClearDepthf(1.0f);
 	glClearColor(0.1f, 0.1f, 0.1f, 1.0f);

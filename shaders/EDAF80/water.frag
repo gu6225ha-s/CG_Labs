@@ -38,6 +38,21 @@ void main()
 	vec3 V = normalize(camera_position - fs_in.vertex);
 	n = normalize(n);
 
+	const float n_air = 1.0, n_water = 1.33;
+	float n1, n2;
+	if (gl_FrontFacing) {
+		// Water -> air
+		n1 = n_water;
+		n2 = n_air;
+		n = -n;
+	}
+	else
+	{
+		// Air -> water
+		n1 = n_air;
+		n2 = n_water;
+	}
+
 	// Basic water color
 	float facing = 1.0 - max(dot(V, n), 0.0);
 	vec4 color_water = mix(color_deep, color_shallow, facing);
@@ -47,9 +62,9 @@ void main()
 	vec4 reflection = texture(cubemap, R);
 
 	// Fresnel refraction
-	float R0 = 0.02037;
+	float R0 = pow((n1 - n2) / (n1 + n2), 2.0);
 	float fresnel = R0 + (1.0 - R0) * pow(1.0 - dot(V, n), 5.0);
-	float eta = 1.0 / 1.33;
+	float eta = n1 / n2;
 	vec3 F = refract(-V, n, eta);
 	vec4 refraction = texture(cubemap, F);
 
